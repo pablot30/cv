@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<meta name="author" content="Pablo Torres">
+<meta name="description" content="CV of Pablo Torres, embedded software engineer at Mercedes-AMG: battery software for electric cars, and robotics built with AI agents.">
+<title>Pablo Torres – CV</title>
+<style>
+  /*
+   * One source, two outputs: this page on screen and a one-page A4 PDF in print.
+   * Arial and Liberation Sans share the same metrics, so line breaks (and the
+   * one-page fit) are the same on macOS, Windows and Linux.
+   */
+  :root {
+    /* Black and white only. */
+    --ink: #000;
+    --muted: #000;
+    --accent: #000;
+    --rule: #000;
+  }
+
+  * { box-sizing: border-box; }
+
+  html {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  body {
+    margin: 0;
+    background: #fff;
+    color: var(--ink);
+    font-family: Arial, "Liberation Sans", Helvetica, sans-serif;
+    font-size: 10pt;
+    line-height: 1.42;
+  }
+
+  a { color: var(--accent); text-decoration: none; }
+
+  .toolbar {
+    width: 210mm;
+    max-width: 100%;
+    margin: 6mm auto 0;
+    padding: 0 2mm;
+    text-align: right;
+  }
+
+  .sheet {
+    width: 210mm;
+    max-width: 100%;
+    margin: 3mm auto 10mm;
+    padding: 12mm 16mm 10mm;
+    background: #fff;
+    border: 0.5pt solid #000;
+  }
+
+  /* Header */
+  header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 5mm;
+    padding-bottom: 6pt;
+    border-bottom: 1.2pt solid var(--accent);
+  }
+
+  h1 {
+    margin: 0;
+    font-size: 25pt;
+    line-height: 1.05;
+    letter-spacing: -0.01em;
+  }
+
+  .tagline {
+    margin: 4pt 0 0;
+    color: var(--accent);
+    font-size: 11pt;
+    font-weight: 700;
+  }
+
+  .subtitle {
+    margin: 2pt 0 0;
+    font-size: 9.2pt;
+  }
+
+  .contact {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    text-align: right;
+    color: var(--muted);
+    font-size: 9.2pt;
+    line-height: 1.42;
+  }
+
+  /* Sections */
+  h2 {
+    margin: 10pt 0 4pt;
+    padding-bottom: 2pt;
+    border-bottom: 0.6pt solid var(--rule);
+    color: var(--accent);
+    font-size: 9pt;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  p { margin: 0; }
+
+  .nw { white-space: nowrap; }
+
+  .entry { margin-top: 6pt; }
+  .entry:first-of-type { margin-top: 0; }
+
+  .entry-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 8pt;
+  }
+
+  h3 {
+    margin: 0;
+    font-size: 10.5pt;
+  }
+
+  h3 .where {
+    color: var(--muted);
+    font-weight: 400;
+  }
+
+  .dates {
+    color: var(--muted);
+    font-size: 9.2pt;
+    white-space: nowrap;
+  }
+
+  ul.bullets {
+    margin: 2pt 0 0;
+    padding-left: 11pt;
+  }
+
+  ul.bullets li { margin: 2pt 0; }
+  ul.bullets li::marker { color: var(--accent); }
+
+  .rows p + p { margin-top: 3pt; }
+
+  .skills {
+    display: grid;
+    grid-template-columns: 38mm 1fr;
+    gap: 3pt 4mm;
+    margin: 0;
+  }
+
+  .skills dt { font-weight: 700; }
+  .skills dd { margin: 0; }
+
+  @page {
+    size: A4;
+    margin: 12mm 16mm 10mm;
+  }
+
+  @media print {
+    body { background: #fff; }
+    .sheet {
+      width: auto;
+      margin: 0;
+      padding: 0;
+      border: none;
+    }
+    .no-print { display: none !important; }
+  }
+
+  @media screen and (max-width: 720px) {
+    body { font-size: 11pt; }
+    .sheet {
+      margin: 0;
+      padding: 7mm 5mm;
+      box-shadow: none;
+    }
+    header,
+    .entry-head {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 2pt;
+    }
+    .contact { text-align: left; }
+    .skills { grid-template-columns: 1fr; }
+    .skills dd + dt { margin-top: 4pt; }
+  }
+</style>
+</head>
+<body>
+
+<p class="toolbar no-print"><a href="Pablo-Torres-CV.pdf">Download as PDF</a></p>
+
+<main class="sheet">
+
+  <header>
+    <div>
+      <h1>Pablo Torres</h1>
+      <p class="tagline">Embedded Software Engineer · EV Battery Systems · Physical AI</p>
+      <p class="subtitle">Building safety-critical software for Mercedes-AMG’s electric performance cars since 2022</p>
+    </div>
+    <ul class="contact">
+      <li>Stuttgart, Germany</li>
+      <li><a href="mailto:pjtm0796@hotmail.com">pjtm0796@hotmail.com</a></li>
+      <li><a href="https://github.com/pablot30">github.com/pablot30</a></li>
+      <li><a href="https://www.linkedin.com/in/torrespablo/">linkedin.com/in/torrespablo</a></li>
+    </ul>
+  </header>
+
+  <section>
+    <h2>Experience</h2>
+
+    <div class="entry">
+      <div class="entry-head">
+        <h3>Development Engineer, Battery Software <span class="where">· Mercedes-AMG, Germany</span></h3>
+        <span class="dates">2022 – Present</span>
+      </div>
+      <ul class="bullets">
+        <li>Develop safety-critical battery management system (BMS) software for AMG’s electric sports cars according to ISO 26262 and AUTOSAR, from low-level drivers to application and diagnostic functions. Validate it in prototype vehicles on test tracks around the world.</li>
+        <li>Contributed BMS software to the <a href="https://www.mercedes-amg.com/en/gt-4-door-coupe">Mercedes-AMG GT 4-Door Coupé</a> and <a href="https://www.mercedes-amg.com/en/gt-suv">GT&nbsp;SUV</a> (up to 860&nbsp;kW) and baseline software to the <span class="nw">CONCEPT AMG GT XX</span>, which set 25 records in 2025, including 40,075 km (the Earth’s circumference) in under 8 days.</li>
+        <li>Developed a patent-pending innovation for high-voltage batteries (2026) and supervised a bachelor’s thesis.</li>
+      </ul>
+    </div>
+
+    <div class="entry">
+      <div class="entry-head">
+        <h3>Automotive Test Engineer <span class="where">· Universidad del Valle, Colombia</span></h3>
+        <span class="dates">2020 – 2021</span>
+      </div>
+      <ul class="bullets">
+        <li>Built a wheel-force measurement system, a CAN interface and an AUTOSAR motor controller for an electric vehicle prototype, and ran its braking, stability and efficiency tests.</li>
+      </ul>
+    </div>
+
+    <div class="entry">
+      <div class="entry-head">
+        <h3>Intern, Measurement Technology <span class="where">· BMW Group, Germany</span></h3>
+        <span class="dates">2019</span>
+      </div>
+      <ul class="bullets">
+        <li>Automated lithium-ion cell balancing on EV test benches, cutting balancing time by 80%.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section>
+    <h2>Education</h2>
+    <div class="rows">
+      <p><strong>Degree in Electronic Engineering</strong> · Universidad del Valle, Colombia · 2014 – 2020</p>
+      <p><strong>Exchange year, Electrical Engineering and IT</strong> · Technical University of Munich · 2018 – 2019</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>Awards</h2>
+    <div class="rows">
+      <p><strong>Winning team (HUT), MIT COVID-19 Challenge hackathon</strong> · built a platform that helps seniors and non-native English speakers order medical supplies · 2020</p>
+      <p><strong>2nd place nationwide in Electronic Engineering</strong> · Saber Pro, Colombia’s national university exit exam · 2019</p>
+      <p><strong>DAAD scholarship</strong> · exchange year at the Technical University of Munich · 2018</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>Skills</h2>
+    <dl class="skills">
+      <dt>Embedded software</dt>
+      <dd>C, C++, Python, MATLAB/Simulink, AUTOSAR, RTOS, CAN, unit testing, CI, Git</dd>
+      <dt>AI development tools</dt>
+      <dd>Claude Code, OpenAI Codex, agentic workflows, AI code review, agent-run robot tests</dd>
+      <dt>Automotive</dt>
+      <dd>Battery management systems (BMS), high-voltage systems, functional safety (ISO&nbsp;26262), Automotive SPICE, diagnostics, hardware-in-the-loop (HiL) testing</dd>
+      <dt>Hardware</dt>
+      <dd>PCB design, electronics prototyping, sensors, microcontrollers, robotics</dd>
+      <dt>Vehicle testing</dt>
+      <dd>AMG performance driving license: race-track prototype testing, summer and winter</dd>
+      <dt>Languages</dt>
+      <dd>Spanish (native), English (fluent), German (fluent)</dd>
+    </dl>
+  </section>
+
+  <section>
+    <h2>Side Project: Physical AI</h2>
+
+    <div class="entry">
+      <div class="entry-head">
+        <h3><a href="https://github.com/pablot30/open-conqueror">open-conqueror</a> <span class="where">· open source, C++ and Python</span></h3>
+        <span class="dates">2026 – Present</span>
+      </div>
+      <ul class="bullets">
+        <li><strong>Vision.</strong> Open-sourcing the whole software of a robot tank and building an agent-friendly robotics ecosystem around it, so that people and AI agents can run complex missions on it. It doubles as a test bed for software architecture, software factories, computer vision, neural networks and control algorithms.</li>
+        <li><strong>So far.</strong> <!-- so-far:start -->Defined requirements and safety goals, designed a scalable architecture for multi-robot missions, and shipped firmware that drives the robot safely and reads its sensors, each step tested on the real robot.<!-- so-far:end --></li>
+        <li><strong>Agentic workflow.</strong> Use Claude Code agents to write firmware, flash the robot and run hardware tests, with OpenAI Codex reviewing pull requests and CI linking requirements to tests.</li>
+      </ul>
+    </div>
+  </section>
+
+</main>
+
+</body>
+</html>

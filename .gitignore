@@ -1,0 +1,12 @@
+# This folder also holds private documents (older CVs with a photo and date of
+# birth). Ignore everything, then allow only what belongs to the public CV.
+/*
+!/.editorconfig
+!/.gitattributes
+!/.gitignore
+!/.github/
+!/README.md
+!/index.html
+!/Pablo-Torres-CV.pdf
+!/scripts/
+__pycache__/
