@@ -7,7 +7,8 @@ Chromium-based browser. It is published at <https://pablot30.github.io/cv/>.
 | --- | --- |
 | `index.html` | The CV: content and styling in one file. Edit this one. |
 | `Pablo-Torres-CV.pdf` | The PDF built from it. Rebuild it, don't edit it. |
-| `scripts/cv.py` | Builds the PDF and syncs the side-project progress line. |
+| `STYLE.md` | The rules that keep the CV readable, consistent and on one page. |
+| `scripts/cv.py` | Builds the PDF, checks the rules and syncs text from open-conqueror. |
 | `.github/workflows/cv.yml` | Builds, checks and publishes the CV on GitHub. |
 
 ## Requirements
@@ -24,8 +25,8 @@ Linux, install `fonts-liberation` (Debian, Ubuntu) or `liberation-fonts`
 
 ## Edit and build
 
-Change the text in `index.html` and preview it in a browser. Then, from this
-folder, on any system:
+Read [STYLE.md](STYLE.md) first. Then change the text in `index.html`, preview
+it in a browser, and run this from this folder, on any system:
 
 ```sh
 python scripts/cv.py build
@@ -33,31 +34,45 @@ python scripts/cv.py build
 
 On Windows, use `py` instead of `python` if that is how Python is installed.
 
-The command prints the PDF and fails if it doesn't fit on one A4 page. If that
-happens, shorten a bullet rather than shrinking the font.
+`build` prints the PDF and checks it against the rules: one page, black and
+white only, no board names, no very short last lines (widows), and line budgets
+for the synced text. If a check fails, it says which line breaks which rule.
+Fix the wording rather than shrinking the font. `python scripts/cv.py check`
+runs the same checks without changing the PDF.
 
-Pushing to `main` publishes the change: the workflow rebuilds the PDF, checks
-the page count and deploys both files to GitHub Pages.
+Pushing to `main` publishes the change: the workflow runs the same build and
+checks, then deploys the page and the PDF to GitHub Pages. If a check fails,
+nothing is published.
 
-## The side-project progress line
+## Text synced from open-conqueror
 
-The "So far" bullet under open-conqueror isn't written here. It comes from
-[`docs/cv-summary.txt`](https://github.com/pablot30/open-conqueror/blob/main/docs/cv-summary.txt)
-in the open-conqueror repository, so it's updated together with the project.
-The file holds one line of plain text, at most 260 characters.
+Two parts of the CV aren't written here. They come from plain-text files in
+the [open-conqueror](https://github.com/pablot30/open-conqueror) repository, so
+they're updated together with the project:
 
-Every Monday, the workflow copies that line into `index.html` between the
-`so-far` markers, rebuilds the PDF, commits both if the text changed, and
-redeploys. To update the CV straight away instead, run the workflow by hand
-from the Actions tab, or locally:
+| File in open-conqueror | Fills in |
+| --- | --- |
+| `docs/cv-summary.txt` | the "So far." bullet of the side project |
+| `docs/cv-ai-tools.txt` | the "AI development tools" skills row |
+
+The rules for both files are in [STYLE.md](STYLE.md#synced-text-from-open-conqueror).
+A file that doesn't exist yet leaves its part of the CV as it is.
+
+Every Monday the workflow copies both files into `index.html` between their
+markers (`<!-- so-far:start -->` and `<!-- ai-tools:start -->`), runs the
+build and checks, commits if anything changed, and redeploys. To update the CV
+straight away, run the workflow by hand from the Actions tab, or locally:
 
 ```sh
 python scripts/cv.py sync
 python scripts/cv.py build
 ```
 
-If the summary is too long, or the CV no longer fits on one page, the workflow
-fails, GitHub emails you, and the published CV stays as it was.
+To try text before it's merged in open-conqueror, point the sync at a local
+checkout: `python scripts/cv.py sync --from ../open-conqueror`.
+
+If the synced text breaks a rule, or the CV no longer fits on one page, the
+workflow fails, GitHub emails you, and the published CV stays as it was.
 
 GitHub pauses scheduled workflows in a repository with no activity for 60 days.
 If that happens, re-enable the workflow from the Actions tab.

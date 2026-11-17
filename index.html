@@ -53,7 +53,9 @@
     margin: 3mm auto 10mm;
     padding: 12mm 16mm 10mm;
     background: #fff;
-    border: 0.5pt solid #000;
+    /* An outline, unlike a border, takes no width, so the screen layout
+       breaks lines exactly like the printed page. */
+    outline: 0.5pt solid #000;
   }
 
   /* Header */
@@ -167,7 +169,7 @@
       width: auto;
       margin: 0;
       padding: 0;
-      border: none;
+      outline: none;
     }
     .no-print { display: none !important; }
   }
@@ -270,7 +272,7 @@
       <dt>Embedded software</dt>
       <dd>C, C++, Python, MATLAB/Simulink, AUTOSAR, RTOS, CAN, unit testing, CI, Git</dd>
       <dt>AI development tools</dt>
-      <dd>Claude Code, OpenAI Codex, agentic workflows, AI code review, agent-run robot tests</dd>
+      <dd data-max-lines="1"><!-- ai-tools:start -->Claude Code, OpenAI Codex, agentic workflows, AI code review, agent-run robot tests<!-- ai-tools:end --></dd>
       <dt>Automotive</dt>
       <dd>Battery management systems (BMS), high-voltage systems, functional safety (ISO&nbsp;26262), Automotive SPICE, diagnostics, hardware-in-the-loop (HiL) testing</dd>
       <dt>Hardware</dt>
@@ -292,7 +294,7 @@
       </div>
       <ul class="bullets">
         <li><strong>Vision.</strong> Open-sourcing the whole software of a robot tank and building an agent-friendly robotics ecosystem around it, so that people and AI agents can run complex missions on it. It is also my platform to experiment with software architecture, software factories, computer vision, neural networks and control algorithms.</li>
-        <li><strong>So far.</strong> <!-- so-far:start -->Defined requirements and safety goals, designed a scalable architecture for multi-robot missions, and shipped firmware that drives the robot safely and reads its sensors, each step tested on the real robot.<!-- so-far:end --></li>
+        <li data-max-lines="2"><strong>So far.</strong> <!-- so-far:start -->Defined requirements and safety goals, designed a scalable architecture for multi-robot missions, and shipped firmware that drives the robot safely and reads its sensors, each step tested on the real robot.<!-- so-far:end --></li>
         <li><strong>Agentic workflow.</strong> Use Claude Code agents to write firmware, flash the robot and run hardware tests, with OpenAI Codex reviewing pull requests and CI linking requirements to tests.</li>
       </ul>
     </div>

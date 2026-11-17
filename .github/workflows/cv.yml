@@ -1,8 +1,10 @@
 name: CV
 
-# Builds the PDF, checks it is one page, and publishes the CV on GitHub Pages.
-# Once a week it also copies open-conqueror's progress summary into the CV,
-# so the side-project line stays current without manual edits.
+# Builds the PDF, checks it against STYLE.md (one page, black and white, line
+# budgets, no widows) and publishes the CV on GitHub Pages. Once a week it also
+# copies open-conqueror's CV text into the page, so the side-project progress
+# and the AI tools stay current without manual edits. If any check fails, the
+# job stops and the published CV stays as it was.
 
 on:
   push:
@@ -29,13 +31,13 @@ jobs:
       - name: Install Liberation Sans (same metrics as Arial)
         run: sudo apt-get update && sudo apt-get install -y --no-install-recommends fonts-liberation
 
-      - name: Sync the open-conqueror progress summary
+      - name: Sync the CV text from open-conqueror
         run: python3 scripts/cv.py sync
 
-      - name: Build the PDF and check it is one page
+      - name: Build the PDF and check it against STYLE.md
         run: python3 scripts/cv.py build
 
-      - name: Commit the updated summary
+      - name: Commit the synced text
         run: |
           if git diff --quiet -- index.html; then
             echo "No summary change to commit."
@@ -44,7 +46,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add index.html Pablo-Torres-CV.pdf
-          git commit -m "Update open-conqueror progress from its summary"
+          git commit -m "Sync open-conqueror progress and AI tools"
           git push
 
       - name: Stage the site
