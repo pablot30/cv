@@ -1,10 +1,16 @@
 name: CV
 
 # Builds the PDF, checks it against STYLE.md (one page, black and white, line
-# budgets, no widows) and publishes the CV on GitHub Pages. Once a week it also
-# copies open-conqueror's CV text into the page, so the side-project progress
-# and the AI tools stay current without manual edits. If any check fails, the
-# job stops and the published CV stays as it was.
+# budgets, no widows) and publishes the CV on GitHub Pages. The "So far." line
+# comes from data/open-conqueror-summary.txt in this repository. If any check
+# fails, the job stops and the published CV stays as it was.
+#
+# Once a week (and when run by hand) the watch job also looks at what
+# open-conqueror publishes for itself: releases, tags, the test reports table
+# and the roadmap stage. When any of them changed since
+# data/open-conqueror-progress.json, it opens an issue asking a person to
+# review the "So far." line. It never changes the CV text, and if
+# open-conqueror can't be read it only warns.
 
 on:
   push:
@@ -31,22 +37,23 @@ jobs:
       - name: Install Liberation Sans (same metrics as Arial)
         run: sudo apt-get update && sudo apt-get install -y --no-install-recommends fonts-liberation
 
-      - name: Sync the CV text from open-conqueror
+      - name: Sync the AI tools list from open-conqueror
         run: python3 scripts/cv.py sync
 
-      - name: Build the PDF and check it against STYLE.md
+      - name: Fill in the CV from data/, build the PDF and check it against STYLE.md
         run: python3 scripts/cv.py build
 
-      - name: Commit the synced text
+      - name: Commit the filled-in text
         run: |
           if git diff --quiet -- index.html; then
-            echo "No summary change to commit."
+            echo "index.html is already current."
             exit 0
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add index.html Pablo-Torres-CV.pdf
-          git commit -m "Sync open-conqueror progress and AI tools"
+          git commit -m "Fill in the CV from data/ and open-conqueror's AI tools"
+          git pull --rebase
           git push
 
       - name: Stage the site
@@ -59,6 +66,51 @@ jobs:
       - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
         with:
           path: _site
+
+  # Notices open-conqueror's progress and asks a person to review the CV line.
+  # Independent of build and deploy, so it can never block publishing.
+  watch:
+    if: github.event_name != 'push'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write # commit data/open-conqueror-progress.json
+      issues: write # open or comment on the review issue
+    env:
+      GH_TOKEN: ${{ github.token }}
+      LABEL: cv-review
+      TITLE: Review the open-conqueror line in the CV
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Compare open-conqueror's progress with the stored state
+        id: watch
+        run: python3 scripts/cv.py watch --issue-body "$RUNNER_TEMP/issue.md"
+
+      - name: Ask for a review of the CV line
+        if: steps.watch.outputs.changed == 'true'
+        run: |
+          gh label create "$LABEL" --force --color ededed \
+            --description "open-conqueror progressed; check the CV's So far. line"
+          open=$(gh issue list --label "$LABEL" --state open --json number --jq '.[0].number // empty')
+          if [ -n "$open" ]; then
+            gh issue comment "$open" --body-file "$RUNNER_TEMP/issue.md"
+            echo "Added the new changes to the open issue #$open."
+          else
+            gh issue create --title "$TITLE" --label "$LABEL" --body-file "$RUNNER_TEMP/issue.md"
+          fi
+
+      - name: Store the state just seen
+        run: |
+          if git diff --quiet -- data/open-conqueror-progress.json; then
+            echo "Stored state is already current."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/open-conqueror-progress.json
+          git commit -m "Record open-conqueror progress seen by the weekly check"
+          git pull --rebase
+          git push
 
   deploy:
     needs: build
