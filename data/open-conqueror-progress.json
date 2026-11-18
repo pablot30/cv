@@ -1,0 +1,11 @@
+{
+  "releases": [],
+  "tags": [],
+  "increments": [
+    {
+      "report": "Increment 1, the walking skeleton",
+      "result": "Passed"
+    }
+  ],
+  "stage": "2, increment 2"
+}

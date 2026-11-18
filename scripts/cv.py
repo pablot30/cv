@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
-"""Build the CV PDF, check it against STYLE.md, and sync text from open-conqueror.
+"""Build the CV PDF, check it against STYLE.md, and keep an eye on open-conqueror.
 
 Usage (from the repository root, on macOS, Linux or Windows):
 
-    python scripts/cv.py build    Print index.html to the PDF and run every check.
-    python scripts/cv.py check    Run the checks without writing the PDF.
-    python scripts/cv.py sync     Copy open-conqueror's CV text into index.html.
+    python scripts/cv.py build    Fill in index.html from data/, print the PDF, run every check.
+    python scripts/cv.py check    Run the checks without changing any file.
+    python scripts/cv.py sync     Copy open-conqueror's AI tools list into index.html.
+    python scripts/cv.py watch    Compare open-conqueror's releases, tags, test reports
+                                  and roadmap stage with data/open-conqueror-progress.json.
 
 Only the Python standard library is used, so there is nothing to install
 besides Python 3.9+ and a Chromium-based browser (Chrome, Edge, Brave, Chromium).
@@ -31,23 +33,29 @@ ROOT = Path(__file__).resolve().parent.parent
 HTML_FILE = ROOT / "index.html"
 PDF_FILE = ROOT / "Pablo-Torres-CV.pdf"
 
-SOURCE_BASE = "https://raw.githubusercontent.com/pablot30/open-conqueror/main/"
+DATA_DIR = ROOT / "data"
+STATE_FILE = DATA_DIR / "open-conqueror-progress.json"
+
+OC_REPO = "pablot30/open-conqueror"
+OC_WEB = f"https://github.com/{OC_REPO}"
+OC_API = f"https://api.github.com/repos/{OC_REPO}"
+SOURCE_BASE = f"https://raw.githubusercontent.com/{OC_REPO}/main/"
 
 
 @dataclass(frozen=True)
 class Field:
-    """A piece of the CV that is filled in from a file in open-conqueror."""
+    """A piece of the CV that is filled in from a plain-text file."""
 
     marker: str  # name of the <!-- name:start --> ... <!-- name:end --> markers
-    source: str  # path of the plain-text file in open-conqueror
+    source: str  # path of the plain-text file (here in data/, or in open-conqueror)
     max_chars: int  # a quick first limit; the real limit is data-max-lines
     sentence: bool  # True: must end with a full stop. False: must not.
 
 
-FIELDS = (
-    Field("so-far", "docs/cv-summary.txt", 240, sentence=True),
-    Field("ai-tools", "docs/cv-ai-tools.txt", 100, sentence=False),
-)
+# Kept in this repository and filled in by every build.
+LOCAL_FIELDS = (Field("so-far", "data/open-conqueror-summary.txt", 260, sentence=True),)
+# Copied from open-conqueror by `sync`.
+FIELDS = (Field("ai-tools", "docs/cv-ai-tools.txt", 100, sentence=False),)
 
 # STYLE.md: no specific microcontroller boards.
 BANNED_WORDS = ("Arduino", "ESP32", "UNO")
@@ -195,8 +203,45 @@ def check_layout(page: str) -> list[str]:
     return json.loads(html.unescape(match.group(1)))
 
 
+def fill(page: str, field: Field, text: str) -> str:
+    """Put text between the field's markers in page."""
+    markers = re.compile(
+        rf"(<!-- {re.escape(field.marker)}:start -->)(.*?)(<!-- {re.escape(field.marker)}:end -->)",
+        re.DOTALL,
+    )
+    if not markers.search(page):
+        sys.exit(f"index.html has no {field.marker} markers.")
+    escaped = html.escape(text, quote=False)
+    return markers.sub(lambda m: f"{m.group(1)}{escaped}{m.group(3)}", page, count=1)
+
+
+def fill_local(page: str) -> str:
+    """Fill in the fields kept in data/, or exit if a file breaks STYLE.md."""
+    for field in LOCAL_FIELDS:
+        path = ROOT / field.source
+        if not path.is_file():
+            sys.exit(f"{field.source} is missing; it holds the CV's text for the {field.marker} markers.")
+        raw = path.read_text(encoding="utf-8")
+        if len(raw.strip().splitlines()) > 1:
+            sys.exit(f"{field.source}: keep it on one line.")
+        text = " ".join(raw.split())
+        problem = validate(field, text)
+        if problem:
+            sys.exit(f"{field.source}: {problem}. The CV is unchanged.")
+        page = fill(page, field, text)
+    return page
+
+
 def check(write_pdf: bool) -> None:
     page = HTML_FILE.read_text(encoding="utf-8")
+    filled = fill_local(page)
+    if filled != page:
+        if not write_pdf:
+            sources = ", ".join(field.source for field in LOCAL_FIELDS)
+            sys.exit(f"index.html doesn't match {sources}. Run `python scripts/cv.py build`.")
+        HTML_FILE.write_text(filled, encoding="utf-8", newline="\n")
+        print(f"Filled in index.html from {', '.join(f.source for f in LOCAL_FIELDS)}.")
+        page = filled
     problems = check_source(page) + check_layout(page)
 
     with tempfile.TemporaryDirectory() as folder:
@@ -217,11 +262,21 @@ def check(write_pdf: bool) -> None:
     print(f"{'Built' if write_pdf else 'Checked'} {PDF_FILE.name}: 1 page, all checks pass.")
 
 
+def warn(message: str) -> None:
+    """Print a warning, shown as an annotation when running on GitHub Actions."""
+    prefix = "::warning::" if os.environ.get("GITHUB_ACTIONS") == "true" else "Warning: "
+    print(prefix + message)
+
+
 def fetch(source: str) -> str | None:
-    """Read a URL or local file. Returns None if it doesn't exist."""
+    """Read a URL or local file. Returns None if it doesn't exist.
+
+    URLs are read without credentials: open-conqueror is public.
+    """
     if source.startswith(("http://", "https://")):
+        request = urllib.request.Request(source, headers={"User-Agent": "cv-build"})
         try:
-            with urllib.request.urlopen(source, timeout=30) as response:
+            with urllib.request.urlopen(request, timeout=30) as response:
                 return response.read().decode("utf-8")
         except urllib.error.HTTPError as error:
             if error.code == 404:
@@ -254,7 +309,11 @@ def sync(base: str) -> None:
         source = base.rstrip("/") + "/" + field.source if base.startswith("http") else str(
             Path(base) / field.source
         )
-        raw = fetch(source)
+        try:
+            raw = fetch(source)
+        except (OSError, ValueError) as error:  # URLError, timeouts, bad encoding
+            warn(f"{field.source}: could not be read ({error}), so the CV keeps its current text.")
+            continue
         if raw is None:
             print(f"{field.source}: not published yet, so the CV keeps its current text.")
             continue
@@ -262,14 +321,7 @@ def sync(base: str) -> None:
         problem = validate(field, text)
         if problem:
             sys.exit(f"{field.source}: {problem}. Fix it in open-conqueror. The CV is unchanged.")
-        markers = re.compile(
-            rf"(<!-- {re.escape(field.marker)}:start -->)(.*?)(<!-- {re.escape(field.marker)}:end -->)",
-            re.DOTALL,
-        )
-        if not markers.search(page):
-            sys.exit(f"index.html has no {field.marker} markers.")
-        escaped = html.escape(text, quote=False)
-        page = markers.sub(lambda m: f"{m.group(1)}{escaped}{m.group(3)}", page, count=1)
+        page = fill(page, field, text)
 
     if page == original:
         print("The synced text is already current.")
@@ -278,21 +330,220 @@ def sync(base: str) -> None:
     print("Updated index.html from open-conqueror. Run build to check that it still fits.")
 
 
+# --- watch: notice open-conqueror's progress and ask a person to review the CV line.
+#
+# Reads only what open-conqueror publishes for its own sake, without credentials,
+# and never changes the CV text. Each signal is read on its own: if one can't be
+# read, or its format changed, it keeps its stored value and a warning says why.
+
+
+class Unreadable(Exception):
+    """A signal could not be read or no longer has the expected format."""
+
+
+def read_releases() -> list[str]:
+    """Tag names of open-conqueror's published GitHub releases."""
+    request = urllib.request.Request(
+        f"{OC_API}/releases?per_page=100",
+        headers={"Accept": "application/vnd.github+json", "User-Agent": "cv-progress-check"},
+    )
+    with urllib.request.urlopen(request, timeout=30) as response:
+        data = json.loads(response.read().decode("utf-8"))
+    if not isinstance(data, list) or not all(isinstance(r, dict) and "tag_name" in r for r in data):
+        raise Unreadable("the releases API answered in an unexpected format")
+    return sorted(r["tag_name"] for r in data if not r.get("draft"))
+
+
+def read_tags() -> list[str]:
+    """open-conqueror's git tags, read with git so the API rate limit doesn't apply."""
+    if not shutil.which("git"):
+        raise Unreadable("git is not installed")
+    result = subprocess.run(
+        ["git", "ls-remote", "--tags", "--refs", f"{OC_WEB}.git"],
+        # Outside this checkout, so a token that actions/checkout stored in its
+        # git config is never sent: the read stays anonymous.
+        cwd=tempfile.gettempdir(),
+        env={**os.environ, "GIT_TERMINAL_PROMPT": "0"},
+        capture_output=True,
+        text=True,
+        timeout=60,
+    )
+    if result.returncode != 0:
+        raise Unreadable(f"git ls-remote failed: {result.stderr.strip()}")
+    return sorted(line.split("refs/tags/", 1)[1] for line in result.stdout.splitlines() if "refs/tags/" in line)
+
+
+def cells(line: str) -> list[str]:
+    return [cell.strip() for cell in line.strip().strip("|").split("|")]
+
+
+def read_increments() -> tuple[list[dict], dict[str, str]]:
+    """Rows of the table in docs/test-reports/README.md: one per finished increment.
+
+    Returns the rows to store ({"report", "result"}) and a link for each report.
+    """
+    base = "docs/test-reports/"
+    text = fetch(SOURCE_BASE + base + "README.md")
+    if text is None:
+        raise Unreadable(f"{base}README.md no longer exists")
+    lines = text.splitlines()
+    for i, line in enumerate(lines):
+        head = [c.lower() for c in cells(line)] if line.lstrip().startswith("|") else []
+        if head and head[0] == "report" and "result" in head:
+            break
+    else:
+        raise Unreadable(f"{base}README.md has no table with Report and Result columns")
+    result_col = head.index("result")
+    if i + 1 >= len(lines) or not re.fullmatch(r"[\s|:-]+", lines[i + 1]):
+        raise Unreadable(f"{base}README.md: the table has no header separator")
+    rows, links = [], {}
+    for line in lines[i + 2 :]:
+        if not line.lstrip().startswith("|"):
+            break
+        row = cells(line)
+        if len(row) != len(head):
+            raise Unreadable(f"{base}README.md: a table row has {len(row)} cells, the header {len(head)}")
+        match = re.fullmatch(r"\[(.+?)\]\((.+?)\)", row[0])
+        report = match.group(1) if match else row[0]
+        if match:
+            target = match.group(2)
+            links[report] = target if target.startswith("http") else f"{OC_WEB}/blob/main/{base}{target}"
+        rows.append({"report": report, "result": row[result_col]})
+    return rows, links
+
+
+def read_stage() -> str:
+    """The **Current stage: ...** line at the top of docs/roadmap.md."""
+    text = fetch(SOURCE_BASE + "docs/roadmap.md")
+    if text is None:
+        raise Unreadable("docs/roadmap.md no longer exists")
+    match = re.search(r"^\*\*Current stage:\s*(.+?)\.?\*\*", text, re.MULTILINE)
+    if not match:
+        raise Unreadable("docs/roadmap.md has no **Current stage: ...** line")
+    return match.group(1).strip()
+
+
+def describe(key: str, old, new, links: dict[str, str]) -> list[str]:
+    """Markdown list items that say what changed in one signal."""
+    if key in ("releases", "tags"):
+        kind = "release" if key == "releases" else "tag"
+        url = f"{OC_WEB}/releases/tag/" if key == "releases" else f"{OC_WEB}/tree/"
+        added = [f"- New {kind} [`{t}`]({url}{t})" for t in new if t not in old]
+        gone = [f"- The {kind} `{t}` is gone ([all {key}]({OC_WEB}/{key}))" for t in old if t not in new]
+        return added + gone
+    if key == "increments":
+        index = f"{OC_WEB}/blob/main/docs/test-reports/README.md"
+        before = {row["report"]: row["result"] for row in old}
+        after = {row["report"]: row["result"] for row in new}
+        items = []
+        for report, result in after.items():
+            link = f"[{report}]({links.get(report, index)})"
+            if report not in before:
+                items.append(f"- New test report: {link}, result: {result}")
+            elif before[report] != result:
+                items.append(f"- Test report {link} changed from {before[report]} to {result}")
+        items += [f"- The test report row \"{r}\" is gone ([test reports]({index}))" for r in before if r not in after]
+        return items
+    if key == "stage":
+        return [f"- The [roadmap]({OC_WEB}/blob/main/docs/roadmap.md) stage changed from \"{old}\" to \"{new}\""]
+    return [f"- {key} changed"]
+
+
+def issue_body(changes: list[str]) -> str:
+    field = LOCAL_FIELDS[0]
+    line = " ".join((ROOT / field.source).read_text(encoding="utf-8").split())
+    return "\n".join(
+        [
+            "open-conqueror has made progress since the CV's \"So far.\" line was last reviewed:",
+            "",
+            *changes,
+            "",
+            "The line in the CV now reads:",
+            "",
+            f"> {line}",
+            "",
+            "Please check it against open-conqueror's "
+            f"[roadmap]({OC_WEB}/blob/main/docs/roadmap.md), "
+            f"[journey]({OC_WEB}/blob/main/docs/journey.md) and "
+            f"[test reports]({OC_WEB}/blob/main/docs/test-reports/README.md). "
+            f"If it should change, edit `{field.source}` (rules in "
+            f"[STYLE.md](https://github.com/{os.environ.get('GITHUB_REPOSITORY', 'pablot30/cv')}/blob/main/STYLE.md)), run `python scripts/cv.py build` and push. "
+            "Close this issue once the line is right, whether or not it needed a change.",
+            "",
+            "_Opened by the weekly CV workflow. It only watches open-conqueror; it never changes the CV text._",
+            "",
+        ]
+    )
+
+
+def watch(body_file: Path | None) -> None:
+    stored = json.loads(STATE_FILE.read_text(encoding="utf-8")) if STATE_FILE.is_file() else {}
+    readers = {
+        "releases": read_releases,
+        "tags": read_tags,
+        "increments": read_increments,
+        "stage": read_stage,
+    }
+    current, links = {}, {}
+    for key, reader in readers.items():
+        try:
+            value = reader()
+        except (Unreadable, OSError, ValueError, subprocess.SubprocessError) as error:
+            # OSError covers URLError, HTTPError and timeouts; ValueError bad JSON.
+            warn(f"open-conqueror {key}: {error}. Kept the last known value; the CV is not affected.")
+            current[key] = stored.get(key)
+            continue
+        if key == "increments":
+            value, links = value
+        current[key] = value
+        print(f"open-conqueror {key}: {json.dumps(value)}")
+
+    changes = []
+    for key, value in current.items():
+        old = stored.get(key)
+        if old is None and value is not None:
+            print(f"open-conqueror {key}: no earlier value stored, so this one becomes the baseline.")
+        elif value is not None and value != old:
+            changes += describe(key, old, value, links)
+
+    if current != stored:
+        STATE_FILE.write_text(json.dumps(current, indent=2) + "\n", encoding="utf-8", newline="\n")
+        print(f"Updated {STATE_FILE.relative_to(ROOT).as_posix()}.")
+    if changes:
+        print("Changes worth a look at the CV line:\n" + "\n".join(changes))
+        if body_file:
+            body_file.write_text(issue_body(changes), encoding="utf-8")
+    else:
+        print("No progress to review.")
+    output = os.environ.get("GITHUB_OUTPUT")
+    if output:
+        with open(output, "a", encoding="utf-8") as handle:
+            handle.write(f"changed={'true' if changes else 'false'}\n")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     sub = parser.add_subparsers(dest="command", required=True)
-    sub.add_parser("build", help="print index.html to the PDF and run every check")
-    sub.add_parser("check", help="run the checks without writing the PDF")
-    sync_parser = sub.add_parser("sync", help="copy open-conqueror's CV text into index.html")
+    sub.add_parser("build", help="fill in index.html from data/, print the PDF, run every check")
+    sub.add_parser("check", help="run the checks without changing any file")
+    sync_parser = sub.add_parser("sync", help="copy open-conqueror's AI tools list into index.html")
     sync_parser.add_argument(
         "--from",
         dest="base",
         default=SOURCE_BASE,
         help="open-conqueror's raw URL or a local checkout (default: GitHub main)",
     )
+    watch_parser = sub.add_parser(
+        "watch", help="compare open-conqueror's progress with data/open-conqueror-progress.json"
+    )
+    watch_parser.add_argument(
+        "--issue-body", type=Path, help="if anything changed, write an issue text for a person here"
+    )
     args = parser.parse_args()
     if args.command == "sync":
         sync(args.base)
+    elif args.command == "watch":
+        watch(args.issue_body)
     else:
         check(write_pdf=args.command == "build")
 

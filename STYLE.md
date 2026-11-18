@@ -15,7 +15,7 @@ them fail.
 - **No widows.** **(checked)** The last line of a bullet, award or skills row
   must hold more than a word or two. Rephrase, or keep the last words together
   with `&nbsp;` or `<span class="nw">…</span>`.
-- **Line budgets.** **(checked)** Text that the sync fills in has a fixed
+- **Line budgets.** **(checked)** Text filled in from a file has a fixed
   number of lines (the `data-max-lines` attribute in `index.html`), so new text
   can never push the page over.
 - **Keep names and numbers together** on one line: `860&nbsp;kW`,
@@ -52,17 +52,22 @@ them fail.
 - **Numbers that matter:** at most one or two per bullet, each one checked
   against a public source.
 
+## The open-conqueror line
+
+The "So far." bullet comes from `data/open-conqueror-summary.txt`, which
+`build` copies into `index.html`. It is one line of plain text, no Markdown or
+HTML, at most 260 characters and 2 printed lines. One sentence, past tense,
+starting with a verb and ending with a full stop. Finished work only: "built",
+not "shipped", until open-conqueror has a release. **(checked:** length, full
+stop, capital letter, plain text, line budget, no board names**)**
+
+Review it whenever the weekly check opens a `cv-review` issue (see the README).
+
 ## Synced text from open-conqueror
 
-Two lines come from files in the
-[open-conqueror](https://github.com/pablot30/open-conqueror) repository, so they
-change together with the project:
-
-| File in open-conqueror | Fills in | Rules |
-| --- | --- | --- |
-| `docs/cv-summary.txt` | the "So far." bullet | One sentence, past tense, starting with a verb and ending with a full stop. Finished work only. At most 2 printed lines. |
-| `docs/cv-ai-tools.txt` | the "AI development tools" skills row | A comma-separated list of tools and practices actually in use, no full stop. At most 1 printed line. |
-
-Both files hold plain text only: no Markdown or HTML. If a file is missing, the
-CV keeps its current text. **(checked)** The sync also refuses text with
-Markdown or HTML characters, and checks the full stop rules above.
+The "AI development tools" skills row comes from `docs/cv-ai-tools.txt` in the
+[open-conqueror](https://github.com/pablot30/open-conqueror) repository, if it
+exists: a comma-separated list of tools and practices actually in use, plain
+text, no full stop, at most 1 printed line. If the file is missing or can't be
+read, the CV keeps its current text. **(checked)** The sync refuses text with
+Markdown or HTML characters, and checks the full stop rule.
